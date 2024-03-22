@@ -1,32 +1,28 @@
 # coding: utf-8
 
-import json
-import os
 from typing import List, Optional
 
 import supervisely as sly
-from fastapi import FastAPI, Request, Response
-from pydantic import BaseModel, root_validator
+from fastapi import FastAPI
+from pydantic import BaseModel
 from supervisely.annotation.json_geometries_map import GET_GEOMETRY_FROM_STR
 from supervisely.api.module_api import ApiField
 
-app = sly.Application()
-server = app.get_server()
+# app = sly.Application()
+# server = app.get_server()
+app = FastAPI()
+server = app
+
+
+class FigureValidationData(BaseModel):
+    area: float
+    geometry_bbox: List
+    geometry: Optional[dict] = None
 
 
 class FigureValidationResult(BaseModel):
-    area: float
-    figure_height: Optional[int]
-    figure_width: Optional[int]
-    figure_json: Optional[str]
+    data: Optional[FigureValidationData] = None
     error: Optional[str] = None
-
-    @root_validator(pre=True)
-    def validate_all(cls, values):
-        area = values.get("area")
-        if area is not None and area < 0:
-            values["error"] = f"Area ({area}) cannot be negative"  # Example
-        return values
 
 
 class ValidationReq(BaseModel):
@@ -41,67 +37,70 @@ class ValidationResponse(BaseModel):
 
 @server.post("/validate-figures")
 async def validate_figures(req: ValidationReq):
-
     tm = sly.TinyTimer()
 
     img_height = req.height
     img_width = req.width
     img_size = (img_height, img_width)
+    canvas_rect = sly.Rectangle.from_size(img_size)
 
     batch_result = []
 
     for figure in req.figures:
-        shape_str = figure[ApiField.GEOMETRY_TYPE]
-        data_json = figure[ApiField.GEOMETRY]
-        figure_json = None
-        figure_height = None
-        figure_width = None
-        try:
-            shape = GET_GEOMETRY_FROM_STR(shape_str)
+        figure_validation = FigureValidationResult()
 
-            figure = shape.from_json(data_json)
-            bbox = figure.to_bbox()
-            figure_height = bbox.height
-            figure_width = bbox.width
+        try:
+            shape_str = figure[ApiField.GEOMETRY_TYPE]
+            data_json = figure[ApiField.GEOMETRY]
+            shape = GET_GEOMETRY_FROM_STR(shape_str)
+            geometry = None
+            geometry_bbox = None
+            geometry_changed=False
+
             if shape is sly.Bitmap:
                 data = data_json[sly.Bitmap.geometry_name()]["data"]
                 origin = data_json[sly.Bitmap.geometry_name()]["origin"]
-                _bbox = sly.Bitmap(
-                    shape.base64_2_data(data), sly.PointLocation(origin[1], origin[0])
-                ).to_bbox()
+                mask_data = sly.Bitmap.base64_2_data(data)
+                geometry = sly.Bitmap(mask_data, sly.PointLocation(origin[1], origin[0]))
+
+                left = origin[0]
+                top = origin[1]
+                bottom = top + mask_data.shape[0] - 1
+                right = left + mask_data.shape[1] - 1
+
+                # raw mask bbox
+                _bbox = sly.Rectangle(top, left, bottom, right)
+
+                # trimmed mask bbox
+                geometry_bbox = geometry.to_bbox()
 
                 _corners = [[xy.col, xy.row] for xy in _bbox.corners]
-                corners = [[xy.col, xy.row] for xy in bbox.corners]
+                corners = [[xy.col, xy.row] for xy in geometry_bbox.corners]
                 for _xy, xy in zip(_corners, corners):
                     if _xy != xy:  # check if bitmap is trimmed
-                        figure_json = json.dumps(figure.to_json())
+                        geometry_changed=True
                         break
-
-            figure_validation = FigureValidationResult(
-                area=figure.area,
-                figure_height=figure_height,
-                figure_width=figure_width,
-                figure_json=figure_json,
-            )
+            else:
+                geometry = shape.from_json(data_json)
+                geometry_bbox = geometry.to_bbox()
 
             # check figure is within image bounds
-            canvas_rect = sly.Rectangle.from_size(img_size)
-            if canvas_rect.contains(bbox) is False:
+            if canvas_rect.contains(geometry_bbox) is False:
                 corners = [
                     pos + str((xy.col, xy.row))
-                    for pos, xy in zip(["ltop", "rtop", "rbot", "lbot"], bbox.corners)
+                    for pos, xy in zip(["ltop", "rtop", "rbot", "lbot"], geometry_bbox.corners)
                 ]
                 raise Exception(
                     f"Figure with corners {corners} is out of image bounds: {img_height}x{img_width}"
                 )
-        except Exception as exc:
-            figure_validation = FigureValidationResult(
-                area=figure.area,
-                figure_height=figure_height,
-                figure_width=figure_width,
-                figure_json=figure_json,
-                error=str(exc),
+
+            figure_validation.data = FigureValidationData(
+                area=geometry.area,
+                geometry_bbox=[geometry_bbox.top, geometry_bbox.left, geometry_bbox.bottom, geometry_bbox.right],
+                geometry=geometry.to_json() if geometry_changed else None
             )
+        except Exception as exc:
+            figure_validation.error = str(exc)
 
         sly.logger.debug("Figure validation done.", extra={"durat_msec": tm.get_sec() * 1000.0})
         batch_result.append(figure_validation)

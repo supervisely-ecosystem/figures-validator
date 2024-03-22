@@ -1,0 +1,12 @@
+services:
+  app:
+    image: supervisely/figures-validator:1.0.2
+    build: .
+    command: --host 0.0.0.0 --port 80 --reload
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - 39135:80
+    volumes:
+      - ./src:/app/src:ro
