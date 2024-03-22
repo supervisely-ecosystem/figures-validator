@@ -61,6 +61,8 @@ async def validate_figures(req: ValidationReq):
 
             figure = shape.from_json(data_json)
             bbox = figure.to_bbox()
+            figure_height = bbox.height
+            figure_width = bbox.width
             if shape is sly.Bitmap:
                 data = data_json[sly.Bitmap.geometry_name()]["data"]
                 origin = data_json[sly.Bitmap.geometry_name()]["origin"]
@@ -77,8 +79,8 @@ async def validate_figures(req: ValidationReq):
 
             figure_validation = FigureValidationResult(
                 area=figure.area,
-                figure_height=bbox.height,
-                figure_width=bbox.width,
+                figure_height=figure_height,
+                figure_width=figure_width,
                 figure_json=figure_json,
             )
 
