@@ -75,13 +75,10 @@ async def validate_figures(req: ValidationReq):
                         figure_json = json.dumps(figure.to_json())
                         break
 
-            figure_height = bbox.height
-            figure_width = bbox.width
-
             figure_validation = FigureValidationResult(
                 area=figure.area,
-                figure_height=figure_height,
-                figure_width=figure_width,
+                figure_height=bbox.height,
+                figure_width=bbox.width,
                 figure_json=figure_json,
             )
 
