@@ -5,3 +5,4 @@ APP_DATA/
 supervisely/
 dataset_tools/
 dataset-tools
+/docker-compose.override.yml
