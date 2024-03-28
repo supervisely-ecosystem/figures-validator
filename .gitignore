@@ -3,6 +3,7 @@ __pycache__/
 .DS_Store
 APP_DATA/
 supervisely/
+supervisely
 dataset_tools/
 dataset-tools
 /docker-compose.override.yml

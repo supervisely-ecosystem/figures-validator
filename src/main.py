@@ -2,9 +2,10 @@
 
 from typing import List, Optional
 
-import supervisely as sly
 from fastapi import FastAPI
 from pydantic import BaseModel
+
+import supervisely as sly
 from supervisely.annotation.json_geometries_map import GET_GEOMETRY_FROM_STR
 from supervisely.api.module_api import ApiField
 
@@ -55,7 +56,7 @@ async def validate_figures(req: ValidationReq):
             shape = GET_GEOMETRY_FROM_STR(shape_str)
             geometry = None
             geometry_bbox = None
-            geometry_changed=False
+            geometry_changed = False
 
             if shape is sly.Bitmap:
                 data = data_json[sly.Bitmap.geometry_name()]["data"]
@@ -78,7 +79,7 @@ async def validate_figures(req: ValidationReq):
                 corners = [[xy.col, xy.row] for xy in geometry_bbox.corners]
                 for _xy, xy in zip(_corners, corners):
                     if _xy != xy:  # check if bitmap is trimmed
-                        geometry_changed=True
+                        geometry_changed = True
                         break
             else:
                 geometry = shape.from_json(data_json)
@@ -96,8 +97,13 @@ async def validate_figures(req: ValidationReq):
 
             figure_validation.data = FigureValidationData(
                 area=geometry.area,
-                geometry_bbox=[geometry_bbox.top, geometry_bbox.left, geometry_bbox.bottom, geometry_bbox.right],
-                geometry=geometry.to_json() if geometry_changed else None
+                geometry_bbox=[
+                    geometry_bbox.top,
+                    geometry_bbox.left,
+                    geometry_bbox.bottom,
+                    geometry_bbox.right,
+                ],
+                geometry=geometry.to_json() if geometry_changed else None,
             )
         except Exception as exc:
             figure_validation.error = str(exc)
