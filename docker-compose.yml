@@ -1,6 +1,6 @@
 services:
   app:
-    image: supervisely/figures-validator:1.0.3
+    image: supervisely/figures-validator:1.0.4
     build: .
     command: --host 0.0.0.0 --port 80 --reload
     environment:
