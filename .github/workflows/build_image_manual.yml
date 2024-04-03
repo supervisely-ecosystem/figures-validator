@@ -50,9 +50,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME_DEVELOPER }}
           password: ${{ secrets.DOCKER_PASSWORD_DEVELOPER }}
 
-      - name: Get Docker Labels from python script
-        run: python .github/workflows/docker_labels.py
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
