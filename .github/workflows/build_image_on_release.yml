@@ -1,5 +1,9 @@
-name: On-Release Image Build to Supervisely Docker ${{ github.event.inputs.tag_version }}
+name: On-Release Image Build to Supervisely Docker
 
+on:
+  release:
+    types: [published]
+    
 jobs:
   build:
     runs-on: ubuntu-latest
