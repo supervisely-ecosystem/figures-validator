@@ -1,4 +1,4 @@
-name: Manual Image Build to Supervisely Docker ${{ github.event.inputs.tag_version }}
+name: Manual Image Build to Supervisely Docker
 
 on:
   workflow_dispatch:
