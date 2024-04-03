@@ -37,7 +37,7 @@ class ValidationResponse(BaseModel):
 
 
 @server.post("/validate-figures")
-async def validate_figures(req: ValidationReq):
+def validate_figures(req: ValidationReq):
     tm = sly.TinyTimer()
 
     img_height = req.height
