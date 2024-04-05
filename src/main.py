@@ -59,6 +59,11 @@ def validate_figures(req: ValidationReq):
             geometry_changed = False
 
             if shape is sly.Bitmap:
+                data = data_json[sly.Bitmap.geometry_name()]
+                if "data" not in data:
+                    raise Exception("Bitmap data is missing")
+                if "origin" not in data:
+                    raise Exception("'origin' field is missing in bitmap data")
                 data = data_json[sly.Bitmap.geometry_name()]["data"]
                 origin = data_json[sly.Bitmap.geometry_name()]["origin"]
                 mask_data = sly.Bitmap.base64_2_data(data)
