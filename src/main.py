@@ -60,6 +60,8 @@ def validate_figures(req: ValidationReq):
 
             if shape is sly.Bitmap:
                 data = data_json[sly.Bitmap.geometry_name()]
+                if data is None:
+                    raise Exception("Bitmap data is None (null)")
                 if "data" not in data:
                     raise Exception("Bitmap data is missing")
                 if "origin" not in data:
