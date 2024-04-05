@@ -108,7 +108,7 @@ def validate_figures(req: ValidationReq):
         except Exception as exc:
             figure_validation.error = str(exc)
 
-        sly.logger.debug("Figure validation done.", extra={"durat_msec": tm.get_sec() * 1000.0})
+        sly.logger.info("Figure validation done.", extra={"durat_msec": tm.get_sec() * 1000.0})
         batch_result.append(figure_validation)
 
     return ValidationResponse(figure_validations=batch_result)
