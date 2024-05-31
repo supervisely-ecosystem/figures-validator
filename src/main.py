@@ -58,7 +58,7 @@ def validate_figures(req: ValidationReq):
             geometry_bbox = None
             geometry_changed = False
 
-            if shape in [sly.Bitmap, sly.AlphaMask]:
+            if shape in (sly.Bitmap, sly.AlphaMask):
                 bitmap_name = sly.Bitmap.geometry_name()
                 shape_name = shape.geometry_name()
 
