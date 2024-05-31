@@ -58,36 +58,40 @@ def validate_figures(req: ValidationReq):
             geometry_bbox = None
             geometry_changed = False
 
-            if shape is sly.Bitmap:
-                data = data_json[sly.Bitmap.geometry_name()]
-                if data is None:
-                    raise Exception("Bitmap data is None (null)")
+            if shape in [sly.Bitmap, sly.AlphaMask]:
+                shape_name = shape.geometry_name()
+                data_shape: dict = data_json[shape_name]
+
+                if data_shape is None:
+                    raise Exception(f"{shape_name} data is None (null).")
                 if "data" not in data:
-                    raise Exception("Bitmap data is missing")
+                    raise Exception(f"'data' field is missing in {shape_name} data.")
                 if "origin" not in data:
-                    raise Exception("'origin' field is missing in bitmap data")
-                data = data_json[sly.Bitmap.geometry_name()]["data"]
-                origin = data_json[sly.Bitmap.geometry_name()]["origin"]
-                mask_data = sly.Bitmap.base64_2_data(data)
-                geometry = sly.Bitmap(mask_data, sly.PointLocation(origin[1], origin[0]))
+                    raise Exception(f"'origin' field is missing in {shape_name} data.")
 
-                left = origin[0]
-                top = origin[1]
-                bottom = top + mask_data.shape[0] - 1
-                right = left + mask_data.shape[1] - 1
-
-                # raw mask bbox
-                _bbox = sly.Rectangle(top, left, bottom, right)
+                data = data_shape["data"]
+                origin = data_shape["origin"]
+                mask_data = shape.base64_2_data(data)
+                geometry = shape(mask_data, sly.PointLocation(origin[1], origin[0]))
 
                 # trimmed mask bbox
                 geometry_bbox = geometry.to_bbox()
 
-                _corners = [[xy.col, xy.row] for xy in _bbox.corners]
-                corners = [[xy.col, xy.row] for xy in geometry_bbox.corners]
-                for _xy, xy in zip(_corners, corners):
-                    if _xy != xy:  # check if bitmap is trimmed
-                        geometry_changed = True
-                        break
+                if shape is sly.Bitmap:
+                    left = origin[0]
+                    top = origin[1]
+                    bottom = top + mask_data.shape[0] - 1
+                    right = left + mask_data.shape[1] - 1
+
+                    # raw mask bbox
+                    _bbox = sly.Rectangle(top, left, bottom, right)
+
+                    _corners = [[xy.col, xy.row] for xy in _bbox.corners]
+                    corners = [[xy.col, xy.row] for xy in geometry_bbox.corners]
+                    for _xy, xy in zip(_corners, corners):
+                        if _xy != xy:  # check if bitmap is trimmed
+                            geometry_changed = True
+                            break
             else:
                 geometry = shape.from_json(data_json)
                 geometry_bbox = geometry.to_bbox()
