@@ -59,18 +59,23 @@ def validate_figures(req: ValidationReq):
             geometry_changed = False
 
             if shape in [sly.Bitmap, sly.AlphaMask]:
+                bitmap_name = sly.Bitmap.geometry_name()
                 shape_name = shape.geometry_name()
-                data_shape: dict = data_json[shape_name]
 
-                if data_shape is None:
-                    raise Exception(f"{shape_name} data is None (null).")
+                data_bitmap: dict = data_json[bitmap_name]
+                if data_bitmap is None:
+                    raise Exception(f"{shape_name}: {bitmap_name}'s data is None (null).")
                 if "data" not in data:
-                    raise Exception(f"'data' field is missing in {shape_name} data.")
+                    raise Exception(
+                        f"{shape_name}: 'data' field is missing in {bitmap_name}'s data."
+                    )
                 if "origin" not in data:
-                    raise Exception(f"'origin' field is missing in {shape_name} data.")
+                    raise Exception(
+                        f"{shape_name}: 'origin' field is missing in {bitmap_name}'s data."
+                    )
 
-                data = data_shape["data"]
-                origin = data_shape["origin"]
+                data = data_bitmap["data"]
+                origin = data_bitmap["origin"]
                 mask_data = shape.base64_2_data(data)
                 geometry = shape(mask_data, sly.PointLocation(origin[1], origin[0]))
 
