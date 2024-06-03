@@ -65,11 +65,11 @@ def validate_figures(req: ValidationReq):
                 data_bitmap: dict = data_json[bitmap_name]
                 if data_bitmap is None:
                     raise Exception(f"{shape_name}: {bitmap_name}'s data is None (null).")
-                if "data" not in data:
+                if "data" not in data_bitmap:
                     raise Exception(
                         f"{shape_name}: 'data' field is missing in {bitmap_name}'s data."
                     )
-                if "origin" not in data:
+                if "origin" not in data_bitmap:
                     raise Exception(
                         f"{shape_name}: 'origin' field is missing in {bitmap_name}'s data."
                     )
