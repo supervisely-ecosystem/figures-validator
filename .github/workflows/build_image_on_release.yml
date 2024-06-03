@@ -64,7 +64,6 @@ jobs:
           push: true
           tags: |
             supervisely/geometry-validator:${{ env.LABEL_VERSION }}
-            ${{ secrets.DOCKER_DEVELOPER_REGISTRY }}/supervisely-internal/ecosystem-apps/geometry-validator:${{ env.LABEL_VERSION }}
             ${{ secrets.DOCKER_ENTERPRISE_REGISTRY }}/supervisely-enterprise/ecosystem-apps/geometry-validator:${{ env.LABEL_VERSION }}
           cache-from: type=registry,ref=supervisely/geometry-validator:cache
           cache-to: type=registry,ref=supervisely/geometry-validator:cache,mode=max
