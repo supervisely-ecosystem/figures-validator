@@ -65,7 +65,6 @@ jobs:
           push: true
           tags: |
             supervisely/geometry-validator:${{ github.event.inputs.tag_version }}
-            ${{ secrets.DOCKER_DEVELOPER_REGISTRY }}/supervisely/ecosystem-apps/geometry-validator:${{ github.event.inputs.tag_version }}
             ${{ secrets.DOCKER_ENTERPRISE_REGISTRY }}/supervisely-enterprise/ecosystem-apps/geometry-validator:${{ github.event.inputs.tag_version }}
           cache-from: type=registry,ref=supervisely/geometry-validator:cache
           cache-to: type=registry,ref=supervisely/geometry-validator:cache,mode=max
