@@ -111,6 +111,16 @@ def validate_figures(req: ValidationReq):
                     f"Figure with corners {corners} is out of image bounds: {img_height}x{img_width}"
                 )
 
+            # check if there are no contours with less than 3 points in polygon
+            if shape == sly.Polygon:
+                exterior = data_json["points"]["exterior"]
+                interior = data_json["points"]["interior"]
+
+                if len(exterior) < 3:
+                    raise Exception("Polygon has exterior contour with less than 3 points.")
+                if any(len(contour) < 3 for contour in interior):
+                    raise Exception("Polygon contains interior contour with less than 3 points.")
+
             figure_validation.data = FigureValidationData(
                 area=geometry.area,
                 geometry_bbox=[
