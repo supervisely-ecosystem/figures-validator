@@ -30,6 +30,7 @@ class ValidationReq(BaseModel):
     height: int
     width: int
     figures: List[dict]
+    skipBoundsValidation: Optional[bool] = False
 
 
 class ValidationResponse(BaseModel):
@@ -44,6 +45,7 @@ def validate_figures(req: ValidationReq):
     img_width = req.width
     img_size = (img_height, img_width)
     canvas_rect = sly.Rectangle.from_size(img_size)
+    skip_bounds_validation = req.skipBoundsValidation
 
     batch_result = []
 
@@ -102,14 +104,15 @@ def validate_figures(req: ValidationReq):
                 geometry_bbox = geometry.to_bbox()
 
             # check figure is within image bounds
-            if canvas_rect.contains(geometry_bbox) is False:
-                corners = [
-                    pos + str((xy.col, xy.row))
-                    for pos, xy in zip(["ltop", "rtop", "rbot", "lbot"], geometry_bbox.corners)
-                ]
-                raise Exception(
-                    f"Figure with corners {corners} is out of image bounds: {img_height}x{img_width}"
-                )
+            if not skip_bounds_validation:
+                if canvas_rect.contains(geometry_bbox) is False:
+                    corners = [
+                        pos + str((xy.col, xy.row))
+                        for pos, xy in zip(["ltop", "rtop", "rbot", "lbot"], geometry_bbox.corners)
+                    ]
+                    raise Exception(
+                        f"Figure with corners {corners} is out of image bounds: {img_height}x{img_width}"
+                    )
 
             # check if there are no contours with less than 3 points in polygon
             if shape == sly.Polygon:
