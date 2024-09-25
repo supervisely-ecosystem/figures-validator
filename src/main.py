@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 
 import uuid
@@ -39,10 +39,10 @@ class ValidationResponse(BaseModel):
 
 
 @server.post("/validate-figures")
-def validate_figures(req: ValidationReq):
+def validate_figures(orig_req: Request, req: ValidationReq):
     tm = sly.TinyTimer()
 
-    req_id = req.headers.get("x-request-uid", uuid.uuid4())
+    req_id = orig_req.headers.get("x-request-uid", uuid.uuid4())
     extra_log_meta={"requestUid": req_id}
     sly.logger.debug("Figure validation started", extra=extra_log_meta)
 
