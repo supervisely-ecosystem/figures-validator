@@ -5,6 +5,7 @@ from typing import List, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import uuid
 import supervisely as sly
 from supervisely.annotation.json_geometries_map import GET_GEOMETRY_FROM_STR
 from supervisely.api.module_api import ApiField
@@ -40,6 +41,10 @@ class ValidationResponse(BaseModel):
 @server.post("/validate-figures")
 def validate_figures(req: ValidationReq):
     tm = sly.TinyTimer()
+
+    req_id = req.headers.get("x-request-uid", uuid.uuid4())
+    extra_log_meta={"requestUid": req_id}
+    sly.logger.debug("Figure validation started", extra=extra_log_meta)
 
     img_height = req.height
     img_width = req.width
@@ -137,7 +142,7 @@ def validate_figures(req: ValidationReq):
         except Exception as exc:
             figure_validation.error = str(exc)
 
-        sly.logger.debug("Figure validation done.", extra={"durat_msec": tm.get_sec() * 1000.0})
+        sly.logger.debug("Figure validation finished", extra={**extra_log_meta, "responseTime": round(tm.get_sec() * 1000.0)})
         batch_result.append(figure_validation)
 
     return ValidationResponse(figure_validations=batch_result)
