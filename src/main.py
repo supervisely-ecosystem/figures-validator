@@ -105,7 +105,8 @@ def validate_figures(orig_req: Request, req: ValidationReq):
                             geometry_changed = True
                             break
             else:
-                geometry = shape.from_json(data_json)
+                data_in_px = shape._to_pixel_coordinate_system_json(data_json, img_size)
+                geometry = shape.from_json(data_in_px)
                 geometry_bbox = geometry.to_bbox()
 
             # check figure is within image bounds
