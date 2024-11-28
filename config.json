@@ -14,5 +14,5 @@
 	"context_menu": {
 		"target": ["images_project", "ecosystem"]
 	},
-	"instance_version": "6.12.1"
+	"instance_version": "6.12.5"
 }
