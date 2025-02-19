@@ -3,7 +3,7 @@
 	"version": "2.0.0",
 	"name": "Figures Validator",
 	"description": "Service for validating figures geometry",
-	"docker_image": "supervisely/base-py-sdk:6.73.238",
+	"docker_image": "supervisely/base-py-sdk:6.73.309",
 	"categories": ["images"],
 	"icon": "",
 	"icon_cover": true,
@@ -14,5 +14,5 @@
 	"context_menu": {
 		"target": ["images_project", "ecosystem"]
 	},
-	"instance_version": "6.12.5"
+	"instance_version": "6.12.28"
 }
