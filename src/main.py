@@ -1,14 +1,15 @@
 # coding: utf-8
 
+import uuid
 from typing import List, Optional
 
+import supervisely as sly
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
-
-import uuid
-import supervisely as sly
+from supervisely import logger
 from supervisely.annotation.json_geometries_map import GET_GEOMETRY_FROM_STR
 from supervisely.api.module_api import ApiField
+from supervisely.geometry.helpers import geometry_to_polygon
 
 # app = sly.Application()
 # server = app.get_server()
@@ -38,13 +39,26 @@ class ValidationResponse(BaseModel):
     figure_validations: List[FigureValidationResult]
 
 
+class ConversionReq(BaseModel):
+    figures: List[dict]
+
+
+class ConversionResult(BaseModel):
+    data: Optional[dict] = None
+    error: Optional[str] = None
+
+
+class ConversionResponse(BaseModel):
+    converted_figures: List[ConversionResult]
+
+
 @server.post("/validate-figures")
 def validate_figures(orig_req: Request, req: ValidationReq):
     tm = sly.TinyTimer()
 
     req_id = orig_req.headers.get("x-request-uid", uuid.uuid4())
-    extra_log_meta={"requestUid": req_id}
-    sly.logger.debug("Figure validation started", extra=extra_log_meta)
+    extra_log_meta = {"requestUid": req_id}
+    logger.debug("Figure validation started", extra=extra_log_meta)
 
     img_height = req.height
     img_width = req.width
@@ -143,7 +157,50 @@ def validate_figures(orig_req: Request, req: ValidationReq):
         except Exception as exc:
             figure_validation.error = str(exc)
 
-        sly.logger.debug("Figure validation finished", extra={**extra_log_meta, "responseTime": round(tm.get_sec() * 1000.0)})
+        logger.debug(
+            "Figure validation finished",
+            extra={**extra_log_meta, "responseTime": round(tm.get_sec() * 1000.0)},
+        )
         batch_result.append(figure_validation)
 
     return ValidationResponse(figure_validations=batch_result)
+
+
+@server.post("/mask-to-poly")
+def convert_mask_to_poly(orig_req: Request, req: ConversionReq):
+    tm = sly.TinyTimer()
+    req_id = orig_req.headers.get("x-request-uid", uuid.uuid4())
+    extra_log_meta = {"requestUid": req_id}
+    logger.info(f"Start converting {len(req.figures)} masks to polygons", extra=extra_log_meta)
+
+    converted_figures = []
+
+    for figure in req.figures:
+        conversion_result = ConversionResult()
+        try:
+            shape_str = figure[ApiField.GEOMETRY_TYPE]
+            shape = GET_GEOMETRY_FROM_STR(shape_str)
+
+            if shape == sly.Bitmap:
+                geometry = sly.Bitmap.from_json(figure)
+                poly_geometries: List[sly.Polygon] = geometry_to_polygon(geometry)
+                if len(poly_geometries) != 1:
+                    raise Exception(
+                        "Operation canceled: Invalid mask detected. "
+                        f"Found {len(poly_geometries)} contours instead of one. "
+                        "The mask may have gaps or multiple regions."
+                    )
+                json_poly = poly_geometries[0].to_json()
+                conversion_result.data = json_poly
+            else:
+                raise Exception(f"Operation canceled: Unsupported geometry type: {shape_str}")
+
+        except Exception as exc:
+            conversion_result.error = str(exc)
+
+        converted_figures.append(conversion_result)
+        logger.info(
+            "Figure conversion completed.",
+            extra={**extra_log_meta, "responseTime": round(tm.get_sec() * 1000.0)},
+        )
+    return ConversionResponse(converted_figures=converted_figures)
