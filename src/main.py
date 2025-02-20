@@ -43,8 +43,15 @@ class ConversionReq(BaseModel):
     figures: List[dict]
 
 
+class ConversionResultData(BaseModel):
+    id: int
+    points: Optional[dict] = None
+    area: Optional[float] = None
+    geometry_bbox: Optional[List[int]] = None
+
+
 class ConversionResult(BaseModel):
-    data: Optional[dict] = None
+    data: Optional[ConversionResultData] = None
     error: Optional[str] = None
 
 
@@ -178,11 +185,13 @@ def convert_mask_to_poly(orig_req: Request, req: ConversionReq):
     for figure in req.figures:
         conversion_result = ConversionResult()
         try:
+
             shape_str = figure[ApiField.GEOMETRY_TYPE]
             shape = GET_GEOMETRY_FROM_STR(shape_str)
 
             if shape == sly.Bitmap:
                 geometry = sly.Bitmap.from_json(figure)
+
                 poly_geometries: List[sly.Polygon] = geometry_to_polygon(geometry)
                 if len(poly_geometries) != 1:
                     raise Exception(
@@ -190,12 +199,27 @@ def convert_mask_to_poly(orig_req: Request, req: ConversionReq):
                         f"Found {len(poly_geometries)} contours instead of one. "
                         "The mask may have gaps or multiple regions."
                     )
+                area = poly_geometries[0].area
+                geometry_bbox = poly_geometries[0].to_bbox()
+                geometry_bbox = [
+                    geometry_bbox.top,
+                    geometry_bbox.left,
+                    geometry_bbox.bottom,
+                    geometry_bbox.right,
+                ]
+
                 json_poly = poly_geometries[0].to_json()
-                conversion_result.data = json_poly
             else:
                 raise Exception(f"Operation canceled: Unsupported geometry type: {shape_str}")
 
+            conversion_result.data = ConversionResultData(
+                id=figure["id"],
+                points=json_poly["points"],
+                area=area,
+                geometry_bbox=geometry_bbox,
+            )
         except Exception as exc:
+            conversion_result.data = ConversionResultData(id=figure["id"])
             conversion_result.error = str(exc)
 
         converted_figures.append(conversion_result)
