@@ -6,9 +6,11 @@ from typing import List, Optional
 import supervisely as sly
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
+
 from supervisely import logger
 from supervisely.annotation.json_geometries_map import GET_GEOMETRY_FROM_STR
 from supervisely.api.module_api import ApiField
+from supervisely.geometry.constants import INTERIOR, POINTS, EXTERIOR
 from supervisely.geometry.helpers import geometry_to_polygon
 
 # app = sly.Application()
@@ -126,6 +128,9 @@ def validate_figures(orig_req: Request, req: ValidationReq):
                             geometry_changed = True
                             break
             else:
+                if shape == sly.Polygon:
+                    polygon_interior_validation(data_json)
+
                 data_in_px = shape._to_pixel_coordinate_system_json(data_json, img_size)
                 geometry = shape.from_json(data_in_px)
                 geometry_bbox = geometry.to_bbox()
@@ -143,8 +148,8 @@ def validate_figures(orig_req: Request, req: ValidationReq):
 
             # check if there are no contours with less than 3 points in polygon
             if shape == sly.Polygon:
-                exterior = data_json["points"]["exterior"]
-                interior = data_json["points"]["interior"]
+                exterior = data_json[POINTS][EXTERIOR]
+                interior = data_json[POINTS][INTERIOR]
 
                 if len(exterior) < 3:
                     raise Exception("Polygon has exterior contour with less than 3 points.")
@@ -228,3 +233,15 @@ def convert_mask_to_poly(orig_req: Request, req: ConversionReq):
             extra={**extra_log_meta, "responseTime": round(tm.get_sec() * 1000.0)},
         )
     return ConversionResponse(converted_figures=converted_figures)
+
+
+def polygon_interior_validation(geometry: dict):
+    interior = geometry[POINTS][INTERIOR]
+
+    validated_interior = []
+    for contour in interior:
+        if len(contour) < 3:
+            sly.logger.debug("Polygon has interior contour with less than 3 points. Skipping.")
+            continue
+        validated_interior.append(contour)
+    geometry[POINTS][INTERIOR] = validated_interior
