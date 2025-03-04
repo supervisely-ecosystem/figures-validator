@@ -129,7 +129,7 @@ def validate_figures(orig_req: Request, req: ValidationReq):
                             break
             else:
                 if shape == sly.Polygon:
-                    polygon_interior_validation(data_json)
+                    geometry_changed = polygon_interior_validation(data_json)
 
                 data_in_px = shape._to_pixel_coordinate_system_json(data_json, img_size)
                 geometry = shape.from_json(data_in_px)
@@ -238,10 +238,14 @@ def convert_mask_to_poly(orig_req: Request, req: ConversionReq):
 def polygon_interior_validation(geometry: dict):
     interior = geometry[POINTS][INTERIOR]
 
+    geometry_changed = False
     validated_interior = []
     for contour in interior:
         if len(contour) < 3:
             sly.logger.debug("Polygon has interior contour with less than 3 points. Skipping.")
+            geometry_changed = True
             continue
         validated_interior.append(contour)
     geometry[POINTS][INTERIOR] = validated_interior
+
+    return geometry_changed
