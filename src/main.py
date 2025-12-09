@@ -127,6 +127,9 @@ def validate_figures(orig_req: Request, req: ValidationReq):
                         if _xy != xy:  # check if bitmap is trimmed
                             geometry_changed = True
                             break
+            elif shape == sly.OrientedBBox:
+                geometry = shape.from_json(data_json)
+                geometry_bbox = geometry.to_bbox()
             else:
                 if shape == sly.Polygon:
                     geometry_changed = polygon_interior_validation(data_json)
@@ -136,7 +139,7 @@ def validate_figures(orig_req: Request, req: ValidationReq):
                 geometry_bbox = geometry.to_bbox()
 
             # check figure is within image bounds
-            if not skip_bounds_validation:
+            if not skip_bounds_validation and not isinstance(geometry, sly.OrientedBBox):
                 if canvas_rect.contains(geometry_bbox) is False:
                     corners = [
                         pos + str((xy.col, xy.row))

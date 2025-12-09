@@ -1,4 +1,4 @@
-FROM supervisely/base-py-sdk:6.73.322
+FROM supervisely/base-py-sdk:6.73.483
 
 WORKDIR /app
 
