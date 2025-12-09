@@ -16,7 +16,7 @@ jobs:
         run: echo ${{ github.event.release.tag_name }}
 
       - name: Write Tag to ENV variable
-        run: echo "LABEL_VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+        run: echo "LABEL_VERSION=$(echo '${{ github.event.release.tag_name }}' | sed 's/^v//')" >> $GITHUB_ENV
 
       - name: Build Docker Image geometry-validator:${{ env.LABEL_VERSION }} and push to docker.io
         run: |
