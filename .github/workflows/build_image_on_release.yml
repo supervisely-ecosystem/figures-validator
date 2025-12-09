@@ -28,22 +28,22 @@ jobs:
             --export-cache type=registry,ref=docker.io/supervisely/geometry-validator:buildcache,mode=max \
             --import-cache type=registry,ref=docker.io/supervisely/geometry-validator:buildcache
 
-      - name: Build Docker Image geometry-validator:${{ env.LABEL_VERSION }} and push to ${{ env.CONTAINER_REGISTRY_INTERNAL }}
+      - name: Build Docker Image geometry-validator:${{ env.LABEL_VERSION }} and push to Internal registry
         run: |
           buildctl build \
             --frontend dockerfile.v0 \
             --local context=./ \
             --local dockerfile=./ \
-            --output type=image,name=${{ env.CONTAINER_REGISTRY_INTERNAL }}/ecosystem-apps/geometry-validator:${{ env.LABEL_VERSION }},push=true  \
+            --output type=image,name=cr.internal.supervisely.com/supervisely-internal/ecosystem-apps/geometry-validator:${{ env.LABEL_VERSION }},push=true  \
             --export-cache type=registry,ref=docker.io/supervisely/geometry-validator:buildcache,mode=max \
             --import-cache type=registry,ref=docker.io/supervisely/geometry-validator:buildcache
 
-      - name: Build Docker Image geometry-validator:${{ env.LABEL_VERSION }} and push to ${{ env.CONTAINER_REGISTRY_ENTERPRISE }}
+      - name: Build Docker Image geometry-validator:${{ env.LABEL_VERSION }} and push to Enterprise registry
         run: |
           buildctl build \
             --frontend dockerfile.v0 \
             --local context=./ \
             --local dockerfile=./ \
-            --output type=image,name=${{ env.CONTAINER_REGISTRY_ENTERPRISE }}/ecosystem-apps/geometry-validator:${{ env.LABEL_VERSION }},push=true  \
+            --output type=image,name=cr.internal.supervisely.com/supervisely-enterprise/ecosystem-apps/geometry-validator:${{ env.LABEL_VERSION }},push=true  \
             --export-cache type=registry,ref=docker.io/supervisely/geometry-validator:buildcache,mode=max \
             --import-cache type=registry,ref=docker.io/supervisely/geometry-validator:buildcache
