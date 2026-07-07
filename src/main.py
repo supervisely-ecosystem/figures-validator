@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from supervisely import logger
 from supervisely.annotation.json_geometries_map import GET_GEOMETRY_FROM_STR
 from supervisely.api.module_api import ApiField
-from supervisely.geometry.constants import INTERIOR, POINTS, EXTERIOR
+from supervisely.geometry.constants import INTERIOR, POINTS, EXTERIOR, PARTS
 from supervisely.geometry.helpers import geometry_to_polygon
 
 # app = sly.Application()
@@ -133,6 +133,8 @@ def validate_figures(orig_req: Request, req: ValidationReq):
             else:
                 if shape == sly.Polygon:
                     geometry_changed = polygon_interior_validation(data_json)
+                elif shape == sly.Multipolygon:
+                    geometry_changed = multipolygon_interior_validation(data_json)
 
                 data_in_px = shape._to_pixel_coordinate_system_json(data_json, img_size)
                 geometry = shape.from_json(data_in_px)
@@ -149,7 +151,7 @@ def validate_figures(orig_req: Request, req: ValidationReq):
                         f"Figure with corners {corners} is out of image bounds: {img_height}x{img_width}"
                     )
 
-            # check if there are no contours with less than 3 points in polygon
+            # check if there are no contours with less than 3 points in polygon-like geometry
             if shape == sly.Polygon:
                 exterior = data_json[POINTS][EXTERIOR]
                 interior = data_json[POINTS][INTERIOR]
@@ -158,6 +160,17 @@ def validate_figures(orig_req: Request, req: ValidationReq):
                     raise Exception("Polygon has exterior contour with less than 3 points.")
                 if any(len(contour) < 3 for contour in interior):
                     raise Exception("Polygon contains interior contour with less than 3 points.")
+            elif shape == sly.Multipolygon:
+                for part in data_json[PARTS]:
+                    exterior = part[EXTERIOR]
+                    interior = part.get(INTERIOR, [])
+
+                    if len(exterior) < 3:
+                        raise Exception("Multipolygon has exterior contour with less than 3 points.")
+                    if any(len(contour) < 3 for contour in interior):
+                        raise Exception(
+                            "Multipolygon contains interior contour with less than 3 points."
+                        )
 
             figure_validation.data = FigureValidationData(
                 area=geometry.area,
@@ -250,5 +263,24 @@ def polygon_interior_validation(geometry: dict):
             continue
         validated_interior.append(contour)
     geometry[POINTS][INTERIOR] = validated_interior
+
+    return geometry_changed
+
+
+def multipolygon_interior_validation(geometry: dict):
+    geometry_changed = False
+
+    for part in geometry[PARTS]:
+        interior = part.get(INTERIOR, [])
+        validated_interior = []
+        for contour in interior:
+            if len(contour) < 3:
+                sly.logger.debug(
+                    "Multipolygon has interior contour with less than 3 points. Skipping."
+                )
+                geometry_changed = True
+                continue
+            validated_interior.append(contour)
+        part[INTERIOR] = validated_interior
 
     return geometry_changed
